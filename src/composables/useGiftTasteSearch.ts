@@ -13,12 +13,6 @@ export interface GiftTasteEntry {
   NeutralItems: string[];
 }
 
-export interface GiftTastesByNPCData {
-  TastesByNpc: {
-    [id: string]: GiftTasteEntry;
-  };
-}
-
 export interface ItemEntry {
   DisplayName: string;
   ItemId: string;
@@ -108,6 +102,14 @@ const unselectItem = () => {
   selectedItemTastes.value = [];
 };
 
+const searchRandom = () => {
+  const objs = Object.values(Items.Objects);
+
+  selectItem(
+    objs[Math.floor(Math.random() * objs.length)] as unknown as ItemEntry,
+  );
+};
+
 const useGiftTasteSearch = () => {
   watch(itemSearchTerm, () => {
     if (selectedItem.value !== null) {
@@ -120,7 +122,7 @@ const useGiftTasteSearch = () => {
 
     searchDebounceTimeout = window.setTimeout(() => {
       itemSearchResults.value = fuse.search(itemSearchTerm.value, {
-        limit: 5,
+        limit: 10,
       });
     }, 250);
   });
@@ -132,6 +134,7 @@ const useGiftTasteSearch = () => {
     selectedItemTastes,
     selectItem,
     unselectItem,
+    searchRandom,
   };
 };
 
