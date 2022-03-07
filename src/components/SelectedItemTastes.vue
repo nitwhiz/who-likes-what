@@ -9,11 +9,36 @@
         <img :src="getNPCTexture(taste.npc)" :alt="taste.npc.Name" />
       </div>
       <div class="name-wrapper">
-        {{ taste.npc.Name }}
+        <div class="name">
+          {{ taste.npc.Name }}
+        </div>
+        <div class="friendship">
+          <div class="hearts-wrapper">
+            <img
+              src="/heart-filled.png"
+              alt="1"
+              v-for="_ in getHeartFilledCount(taste.npc.Name)"
+            />
+            <img
+              src="/heart.png"
+              alt="0"
+              v-for="_ in getHeartEmptyCount(taste.npc.Name)"
+            />
+          </div>
+        </div>
       </div>
       <div class="taste-wrapper">
         <div class="taste-text">
           {{ getTasteString(taste.taste) }}
+        </div>
+        <div class="gifts">
+          <div
+            class="gift"
+            v-for="i in 2"
+            :class="getGiftCount(taste.npc.Name) >= i ? 'gifted' : void 0"
+          >
+            <img src="/gift.png" alt="gift" />
+          </div>
         </div>
       </div>
     </div>
@@ -30,13 +55,16 @@ import useGiftTasteSearch, {
   TASTE_LIKE,
   TASTE_LOVE,
 } from '../composables/useGiftTasteSearch';
+import useValleyServer from '../composables/useValleyServer';
 
 export default defineComponent({
   setup() {
     const { selectedItemTastes } = useGiftTasteSearch();
+    const { npcLocationData } = useValleyServer();
 
     return {
       selectedItemTastes,
+      npcLocationData,
     };
   },
   methods: {
@@ -70,6 +98,18 @@ export default defineComponent({
         default:
           return 'neutral';
       }
+    },
+    getGiftCount(npcName: string) {
+      return this.npcLocationData[npcName]?.npcGiftsThisWeek || 0;
+    },
+    getHeartFilledCount(npcName: string) {
+      return this.npcLocationData[npcName]?.npcFriendshipPoints || 0;
+    },
+    getHeartEmptyCount(npcName: string) {
+      return Math.max(
+        0,
+        10 - (this.npcLocationData[npcName]?.npcFriendshipPoints || 0),
+      );
     },
   },
 });
@@ -137,14 +177,27 @@ $blue: #355c7d;
 
     .name-wrapper {
       font-size: 18px;
-      text-align: center;
+
+      width: 100%;
+
+      .friendship {
+        margin-top: 8px;
+
+        .hearts-wrapper {
+          display: flex;
+          flex-wrap: wrap;
+
+          img {
+            image-rendering: pixelated;
+          }
+        }
+      }
     }
 
     .taste-wrapper {
-      width: 100%;
-
       display: flex;
       justify-content: flex-end;
+      flex-direction: column;
 
       .taste-text {
         padding: 3px 8px;
@@ -153,6 +206,29 @@ $blue: #355c7d;
 
         text-transform: uppercase;
         letter-spacing: 1px;
+      }
+
+      .gifts {
+        margin-top: 8px;
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: flex-start;
+
+        .gift {
+          &:last-child {
+            margin-right: 6px;
+          }
+
+          img {
+            opacity: 0.25;
+          }
+
+          &.gifted {
+            img {
+              opacity: 1;
+            }
+          }
+        }
       }
     }
 
