@@ -2,21 +2,21 @@
   <div class="item-search">
     <div class="search-bar">
       <div class="icon-wrapper magnify">
-        <template v-if="selectedItem === null">
+        <template v-if="selectedResult === null">
           <IconMagnify />
         </template>
         <template v-else>
           <img
-            :src="getItemTexture(selectedItem)"
-            :alt="selectedItem.DisplayName"
+            :src="selectedResult.getTextureUrl()"
+            :alt="selectedResult.name"
           />
         </template>
       </div>
       <div class="text-wrapper">
         <input
           type="text"
-          v-model="itemSearchTerm"
-          @input="unselectItem"
+          v-model="searchTerm"
+          @input="unselectResult"
           ref="searchBar"
         />
       </div>
@@ -24,21 +24,21 @@
         <IconClose @click="unsetSearch" />
       </div>
       <div class="icon-wrapper dice">
-        <IconDice @click="searchRandom" />
+        <IconDice @click="selectRandom" />
       </div>
     </div>
-    <div class="search-results" v-if="itemSearchResults.length > 0">
+    <div class="search-results" v-if="searchResults.length > 0">
       <div
         class="result-entry"
-        v-for="r in itemSearchResults"
-        :key="r.item.Id"
-        @click="() => selectItem(r.item)"
+        v-for="r in searchResults"
+        :key="r.item.id"
+        @click="() => selectResult(r.item)"
       >
         <div class="icon-wrapper">
-          <img :src="getItemTexture(r.item)" :alt="r.item.DisplayName" />
+          <img :src="r.item.getTextureUrl()" :alt="r.item.name" />
         </div>
         <div class="name-wrapper">
-          {{ r.item.DisplayName }}
+          {{ r.item.name }}
         </div>
       </div>
     </div>
@@ -46,8 +46,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
-import { ItemEntry } from '../composables/useGiftTasteSearch';
+import { computed, defineComponent } from 'vue';
 import useGiftTasteSearch from '../composables/useGiftTasteSearch';
 
 import IconMagnify from '~icons/mdi/magnify';
@@ -62,30 +61,33 @@ export default defineComponent({
   },
   setup() {
     const {
-      selectedItem,
-      itemSearchTerm,
+      selectedResult,
+      searchTerm,
       itemSearchResults,
-      selectItem,
-      unselectItem,
-      searchRandom,
+      npcSearchResults,
+      selectResult,
+      unselectResult,
+      selectRandom,
     } = useGiftTasteSearch();
 
+    const searchResults = computed(() => [
+      ...itemSearchResults.value,
+      ...npcSearchResults.value,
+    ]);
+
     return {
-      selectedItem,
-      itemSearchTerm,
-      itemSearchResults,
-      selectItem,
-      unselectItem,
-      searchRandom,
+      selectedResult,
+      searchTerm,
+      searchResults,
+      selectResult,
+      unselectResult,
+      selectRandom,
     };
   },
   methods: {
-    getItemTexture(item: ItemEntry) {
-      return `${import.meta.env.BASE_URL}textures/items/${item.Id}.png`;
-    },
     unsetSearch() {
-      this.itemSearchTerm = '';
-      this.unselectItem();
+      this.searchTerm = '';
+      this.unselectResult();
 
       (this.$refs.searchBar as HTMLInputElement).focus();
     },
