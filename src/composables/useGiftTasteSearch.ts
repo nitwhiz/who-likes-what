@@ -1,118 +1,51 @@
 import { ref, watch } from 'vue';
-import GiftTastes from '../assets/gift-tastes-by-npc.json';
-import Npcs from '../assets/npcs.json';
-import Items from '../assets/items.json';
+
+import ItemRepository from '../common/item/ItemRepository';
+import NpcRepository from '../common/npc/NpcRepository';
+import ItemModel from '../common/item/ItemModel';
+import NpcModel from '../common/npc/NpcModel';
 import Fuse from 'fuse.js';
 import FuseResult = Fuse.FuseResult;
 
-export interface GiftTasteEntry {
-  LoveItems: string[];
-  LikeItems: string[];
-  DislikeItems: string[];
-  HateItems: string[];
-  NeutralItems: string[];
-}
+const itemRepo = new ItemRepository();
+const npcRepo = new NpcRepository();
 
-export interface ItemEntry {
-  DisplayName: string;
-  ItemId: string;
-  Id: string;
-}
+const itemFuse = itemRepo.getFuse();
+const npcFuse = npcRepo.getFuse();
 
-export interface ItemsData {
-  Objects: {
-    [id: string]: ItemEntry;
-  };
-}
+const searchTerm = ref('');
 
-export interface NpcEntry {
-  Name: string;
-  Id: string;
-}
+const itemSearchResults = ref([] as FuseResult<ItemModel>[]);
+const npcSearchResults = ref([] as FuseResult<NpcModel>[]);
 
-export interface NpcsData {
-  Npcs: {
-    [id: string]: NpcEntry;
-  };
-}
-
-export const TASTE_LOVE = 10;
-export const TASTE_LIKE = 20;
-export const TASTE_NEUTRAL = 30;
-export const TASTE_DISLIKE = 40;
-export const TASTE_HATE = 50;
-
-export type Taste =
-  | typeof TASTE_LOVE
-  | typeof TASTE_LIKE
-  | typeof TASTE_NEUTRAL
-  | typeof TASTE_DISLIKE
-  | typeof TASTE_HATE;
-
-export interface GiftTaste {
-  npc: NpcEntry;
-  taste: Taste;
-}
-
-const itemSearchTerm = ref('');
-const itemSearchResults = ref([] as FuseResult<ItemEntry>[]);
-
-const selectedItem = ref(null as ItemEntry | null);
-const selectedItemTastes = ref([] as GiftTaste[]);
+const selectedResult = ref(null as ItemModel | NpcModel | null);
 
 let searchDebounceTimeout = -1;
 
-const fuse = new Fuse(Object.values((Items as unknown as ItemsData).Objects), {
-  keys: ['DisplayName'],
-  shouldSort: true,
-});
-
-const selectItem = (item: ItemEntry) => {
-  selectedItem.value = item;
+const selectResult = (result: ItemModel | NpcModel) => {
+  selectedResult.value = result;
 
   itemSearchResults.value = [];
-  itemSearchTerm.value = item.DisplayName;
+  npcSearchResults.value = [];
 
-  selectedItemTastes.value = Object.entries(GiftTastes.TastesByNpc)
-    .map(([npcId, tasteData]) => {
-      let taste: Taste = TASTE_NEUTRAL;
-
-      if ((tasteData as GiftTasteEntry).LoveItems.includes(item.Id)) {
-        taste = TASTE_LOVE;
-      } else if ((tasteData as GiftTasteEntry).LikeItems.includes(item.Id)) {
-        taste = TASTE_LIKE;
-      } else if ((tasteData as GiftTasteEntry).DislikeItems.includes(item.Id)) {
-        taste = TASTE_DISLIKE;
-      } else if ((tasteData as GiftTasteEntry).HateItems.includes(item.Id)) {
-        taste = TASTE_HATE;
-      }
-
-      return {
-        npc: (Npcs as NpcsData).Npcs[npcId],
-        taste,
-      };
-    })
-    .sort((tasteA, tasteB) => {
-      return tasteA.taste - tasteB.taste;
-    });
+  searchTerm.value = result.name;
 };
 
-const unselectItem = () => {
-  selectedItem.value = null;
-  selectedItemTastes.value = [];
+const unselectResult = () => {
+  selectedResult.value = null;
 };
 
-const searchRandom = () => {
-  const objs = Object.values(Items.Objects);
-
-  selectItem(
-    objs[Math.floor(Math.random() * objs.length)] as unknown as ItemEntry,
-  );
+const selectRandom = () => {
+  if (Math.random() >= 0.33) {
+    selectResult(itemRepo.getRandom());
+  } else {
+    selectResult(npcRepo.getRandom());
+  }
 };
 
 const useGiftTasteSearch = () => {
-  watch(itemSearchTerm, () => {
-    if (selectedItem.value !== null) {
+  watch(searchTerm, () => {
+    if (selectedResult.value !== null) {
       return;
     }
 
@@ -121,20 +54,24 @@ const useGiftTasteSearch = () => {
     }
 
     searchDebounceTimeout = window.setTimeout(() => {
-      itemSearchResults.value = fuse.search(itemSearchTerm.value, {
-        limit: 10,
+      itemSearchResults.value = itemFuse.search(searchTerm.value, {
+        limit: 5,
+      });
+
+      npcSearchResults.value = npcFuse.search(searchTerm.value, {
+        limit: 3,
       });
     }, 250);
   });
 
   return {
-    itemSearchTerm,
+    searchTerm,
     itemSearchResults,
-    selectedItem,
-    selectedItemTastes,
-    selectItem,
-    unselectItem,
-    searchRandom,
+    npcSearchResults,
+    selectedResult,
+    selectResult,
+    unselectResult,
+    selectRandom,
   };
 };
 

@@ -1,19 +1,19 @@
 <template>
   <div class="wrapper">
-    <ItemSearch />
-    <SelectedItemTastes />
+    <Search />
+    <Tastes />
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import ItemSearch from './components/ItemSearch.vue';
-import SelectedItemTastes from './components/SelectedItemTastes.vue';
+import Search from './components/Search.vue';
+import Tastes from './components/Tastes.vue';
 
 export default defineComponent({
   components: {
-    ItemSearch,
-    SelectedItemTastes,
+    Search,
+    Tastes,
   },
 });
 </script>

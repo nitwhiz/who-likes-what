@@ -1,19 +1,23 @@
 <template>
-  <div class="selected-item-tastes">
+  <div class="tastes-wrapper" :class="tasteType" v-if="tasteModel !== null">
     <div
-      class="npc-entry"
-      v-for="taste in selectedItemTastes"
-      :class="getTasteClass(taste.taste)"
+      class="taste-entry"
+      v-for="tasteEntry in tasteModel.tasteEntries"
+      :class="getTasteClass(tasteEntry.taste)"
+      @click="() => selectResult(tasteEntry.model)"
     >
-      <div class="portrait-wrapper">
-        <img :src="getNPCTexture(taste.npc)" :alt="taste.npc.Name" />
+      <div class="icon-wrapper">
+        <img
+          :src="tasteEntry.model.getTextureUrl()"
+          :alt="tasteEntry.model.name"
+        />
       </div>
       <div class="name-wrapper">
-        {{ taste.npc.Name }}
+        <span>{{ tasteEntry.model.name }}</span>
       </div>
       <div class="taste-wrapper">
         <div class="taste-text">
-          {{ getTasteString(taste.taste) }}
+          {{ getTasteString(tasteEntry.taste) }}
         </div>
       </div>
     </div>
@@ -21,28 +25,54 @@
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
-import useGiftTasteSearch, {
-  NpcEntry,
-  Taste,
+import { computed, defineComponent, ref } from 'vue';
+import useGiftTasteSearch from '../composables/useGiftTasteSearch';
+import ItemModel from '../common/item/ItemModel';
+import GiftTasteByItemRepository from '../common/taste/GiftTasteByItemRepository';
+import NpcRepository from '../common/npc/NpcRepository';
+import ItemRepository from '../common/item/ItemRepository';
+import Taste, {
   TASTE_DISLIKE,
   TASTE_HATE,
   TASTE_LIKE,
   TASTE_LOVE,
-} from '../composables/useGiftTasteSearch';
+} from '../common/taste/Taste';
+import GiftTasteByNpcRepository from '../common/taste/GiftTasteByNpcRepository';
+import NpcModel from '../common/npc/NpcModel';
 
 export default defineComponent({
   setup() {
-    const { selectedItemTastes } = useGiftTasteSearch();
+    const { selectedResult, selectResult } = useGiftTasteSearch();
+
+    const tasteType = ref('item' as 'item' | 'npc');
+
+    const tasteModel = computed(() => {
+      if (selectedResult.value instanceof ItemModel) {
+        tasteType.value = 'item';
+
+        return new GiftTasteByItemRepository(
+          new NpcRepository(),
+          new ItemRepository(),
+        ).getById(selectedResult.value.id);
+      } else if (selectedResult.value instanceof NpcModel) {
+        tasteType.value = 'npc';
+
+        return new GiftTasteByNpcRepository(
+          new NpcRepository(),
+          new ItemRepository(),
+        ).getById(selectedResult.value.id);
+      }
+
+      return null;
+    });
 
     return {
-      selectedItemTastes,
+      tasteModel,
+      selectResult,
+      tasteType,
     };
   },
   methods: {
-    getNPCTexture(npc: NpcEntry) {
-      return `${import.meta.env.BASE_URL}textures/portraits/${npc.Id}.png`;
-    },
     getTasteString(taste: Taste) {
       switch (taste) {
         case TASTE_LOVE:
@@ -86,7 +116,7 @@ export default defineComponent({
   border: 1px solid scale-color($base-color, $lightness: -30%);
   background-color: scale-color($base-color, $lightness: 85%);
 
-  .portrait-wrapper {
+  .icon-wrapper {
     background-color: scale-color($base-color, $alpha: -60%);
   }
 
@@ -101,13 +131,13 @@ $purpur: #c06c84;
 $violet: #6c5b7b;
 $blue: #355c7d;
 
-.selected-item-tastes {
+.tastes-wrapper {
   display: flex;
   flex-wrap: wrap;
 
   justify-content: space-around;
 
-  .npc-entry {
+  .taste-entry {
     margin: 8px;
     padding: 8px 24px 8px 8px;
 
@@ -118,7 +148,9 @@ $blue: #355c7d;
     display: flex;
     align-items: center;
 
-    .portrait-wrapper {
+    cursor: pointer;
+
+    .icon-wrapper {
       display: flex;
       justify-content: center;
       align-items: center;
@@ -137,12 +169,19 @@ $blue: #355c7d;
 
     .name-wrapper {
       font-size: 18px;
-      text-align: center;
+      text-align: left;
+      padding-right: 8px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+
+      width: 100%;
+
+      span {
+        white-space: nowrap;
+      }
     }
 
     .taste-wrapper {
-      width: 100%;
-
       display: flex;
       justify-content: flex-end;
 
@@ -174,6 +213,30 @@ $blue: #355c7d;
 
     &.hate {
       @include item-taste-base($red);
+    }
+  }
+}
+
+.tastes-wrapper.npc {
+  .taste-entry {
+    padding: 8px 16px 8px 8px;
+
+    width: 230px;
+
+    .icon-wrapper {
+      img {
+        width: 32px;
+      }
+    }
+
+    .name-wrapper {
+      font-size: 14px;
+    }
+
+    .taste-wrapper {
+      .taste-text {
+        font-size: 10px;
+      }
     }
   }
 }
