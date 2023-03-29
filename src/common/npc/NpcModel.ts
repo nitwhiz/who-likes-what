@@ -9,6 +9,6 @@ export default class NpcModel {
   }
 
   public getTextureUrl(): string {
-    return `${import.meta.env.BASE_URL}textures/portraits/${this.id}.png`;
+    return `${import.meta.env.BASE_URL}v1/textures/portraits/${this.id}.png`;
   }
 }
